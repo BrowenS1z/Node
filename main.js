@@ -1,47 +1,67 @@
-const colors = require('colors');
+const moment = require('moment');
+const EventEmitter = require('events');
+const emitter = new EventEmitter();
 
-const args = process.argv.slice(2, 5);
-const argsArr = [];
-for (let i = 0; i < args.length; i++) {
-    argsArr.push(Number(args[i]));
+const dates = process.argv.slice(2);
+let timers = [];
+
+const createTimer = (date) => {
+    date = date.split('-');
+
+    let timerTime = new Date(date[3], date[2] - 1, date[1], date[0]);
+
+    if (isNaN(timerTime)) {
+        console.log('Ошибка! Неправильный формат');
+        return;
+    }
+
+    if (timerTime < new Date().getTime()) {
+        console.log('Ошибка! Неверная дата');
+        return;
+    }
+
+    timers.push(timerTime);
 }
 
-for(let i = 0; i < argsArr.length; i++){
-    if(isNaN(argsArr[i])){
-        console.log(colors.red('Введи число!'));
+for (let i = 0; i < dates.length; i++) {
+    createTimer(dates[i]);
+}
+
+const timerWork = (timerTime) => {
+    let flag = false;
+    setInterval(function () {
+        if (!flag) {
+            let currentTime = new Date().getTime();
+            let diffTime = timerTime - currentTime;
+            let duration = moment.duration(diffTime, 'milliseconds');
+            let payload = `${duration._data.years} years, ${duration._data.months} months, ${duration._data.days} days, ${duration._data.hours} hours, ${duration._data.minutes} minutes, ${duration._data.seconds} seconds`;
+            if (duration <= 0) {
+                payload = `Таймер закончился`;
+                flag = true;
+            }
+            else {
+                emitter.emit('timerTick', payload);
+            }
+        }
+        else {
+            return;
+        }
+    }, 1000)
+}
+
+const run = () => {
+    let currentTime = new Date().getTime();
+    for (let i = 0; i < timers.length; i++) {
+        timerWork(timers[i]);
     }
 }
 
-console.log('Диапазон: ' + args);
-
-let Get_colors = false;
-let set_color = "green";
-
-for(let i = argsArr[0]; i <= argsArr[1]; i++){
-    for(let j = 2; j < i; j++){
-        if(i % j == 0){
-            Get_colors = true;
-        }
+class TimerHandler {
+    static timerTick(payload) {
+        console.log('До окончания таймера: ', payload);
     }
-
-    if(Get_colors == false){
-        switch(set_color){
-            case "green": {
-                console.log(colors.green(i));
-                set_color = "yellow";
-                break;
-            }
-            case "yellow": {
-                console.log(colors.yellow(i));
-                set_color = "red";
-                break;
-            }
-            case "red": {
-                console.log(colors.red(i));
-                set_color = "green";
-                break;
-            }
-        }
-    }  
-    Get_colors = false; 
 }
+
+emitter.on('timerTick', TimerHandler.timerTick);
+
+run();
