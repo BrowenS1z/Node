@@ -1,47 +1,18 @@
-const colors = require('colors');
+const fs = require('fs')
+const readline = require('readline')
 
-const args = process.argv.slice(2, 5);
-const argsArr = [];
-for (let i = 0; i < args.length; i++) {
-    argsArr.push(Number(args[i]));
-}
+const access = fs.createReadStream('./access.log', 'utf8')
+const requests1 = fs.createWriteStream('./requests_IP41.log')
+const requests2 = fs.createWriteStream('./requests_IP111.log')
 
-for(let i = 0; i < argsArr.length; i++){
-    if(isNaN(argsArr[i])){
-        console.log(colors.red('Введи число!'));
+readline.createInterface({
+    input: access,
+    terminal: false,
+}).on('line', (line) => {
+    if (line.includes("89.123.1.41")) {
+        requests1.write(line + "\n")
     }
-}
-
-console.log('Диапазон: ' + args);
-
-let Get_colors = false;
-let set_color = "green";
-
-for(let i = argsArr[0]; i <= argsArr[1]; i++){
-    for(let j = 2; j < i; j++){
-        if(i % j == 0){
-            Get_colors = true;
-        }
+    else if (line.includes("34.48.240.111")) {
+        requests2.write(line + "\n")
     }
-
-    if(Get_colors == false){
-        switch(set_color){
-            case "green": {
-                console.log(colors.green(i));
-                set_color = "yellow";
-                break;
-            }
-            case "yellow": {
-                console.log(colors.yellow(i));
-                set_color = "red";
-                break;
-            }
-            case "red": {
-                console.log(colors.red(i));
-                set_color = "green";
-                break;
-            }
-        }
-    }  
-    Get_colors = false; 
-}
+})
