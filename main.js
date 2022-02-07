@@ -1,47 +1,54 @@
-const colors = require('colors');
+const fs = require('fs/promises');
+const { lstatSync } = require('fs');
+const inquirer = require('inquirer');
+const yargs = require('yargs');
+const path = require('path');
 
-const args = process.argv.slice(2, 5);
-const argsArr = [];
-for (let i = 0; i < args.length; i++) {
-    argsArr.push(Number(args[i]));
-}
+let executionDir = process.cwd();
 
-for(let i = 0; i < argsArr.length; i++){
-    if(isNaN(argsArr[i])){
-        console.log(colors.red('Введи число!'));
+const options = yargs
+    .options('d', {
+        describe: 'Path to the directory',
+        alias: 'dir',
+        default: process.cwd(),
+    })
+    .options('s', {
+        alias: 'substring',
+        default: '',
+    }).argv;
+console.log(options);
+
+const isDir = (path) => lstatSync(path).isDirectory();
+
+const run = async () => {
+    const list = await fs.readdir(executionDir);
+    let chosenPath;
+    await inquirer.prompt([
+        {
+            name: 'fileName',
+            type: 'list',
+            message: 'Choose category: ',
+            choices: list,
+        }
+    ]).then(({ fileName }) => {
+        chosenPath = path.join(executionDir, fileName);
+    });
+
+    if (isDir(chosenPath)) {
+        executionDir = chosenPath;
+        return await run();
     }
-}
-
-console.log('Диапазон: ' + args);
-
-let Get_colors = false;
-let set_color = "green";
-
-for(let i = argsArr[0]; i <= argsArr[1]; i++){
-    for(let j = 2; j < i; j++){
-        if(i % j == 0){
-            Get_colors = true;
+    else {
+        const data = await fs.readFile(chosenPath, 'utf-8');
+        if (!options.substring) {
+            console.log(data)
+        }
+        else {
+            const regExp = new RegExp(options.substring, 'igm');
+            console.log(data.match(regExp));
         }
     }
 
-    if(Get_colors == false){
-        switch(set_color){
-            case "green": {
-                console.log(colors.green(i));
-                set_color = "yellow";
-                break;
-            }
-            case "yellow": {
-                console.log(colors.yellow(i));
-                set_color = "red";
-                break;
-            }
-            case "red": {
-                console.log(colors.red(i));
-                set_color = "green";
-                break;
-            }
-        }
-    }  
-    Get_colors = false; 
 }
+
+run();
